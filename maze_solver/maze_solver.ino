@@ -22,10 +22,10 @@ const int Bb = 5;
 const int PWM_B = 3;
 
 int buttonstart = 11;
-
+bool stopp = false;
 char path[50];
 int pointer = 0;
-
+char final_path[50];
 /*===========================================SETUP===============================================*/
 
 void setup() {
@@ -132,10 +132,13 @@ void left_turn(uint8_t speed_ab){
   analogWrite(PWM_B, 0);
 }
 
-/*======================================LOOP=============================================*/
+/*=====================================REDUCE PATH FUNCTION==============================*/
 
-void loop() {
-   uint16_t position = qtr.readLineWhite(reading);
+
+/*======================================DRY RUN==========================================*/
+
+void dry_run(){
+  uint16_t position = qtr.readLineWhite(reading);
 
    // right turn detected
    if( (reading[4]<200 or reading[3]<200)and reading[0]<200){
@@ -148,8 +151,13 @@ void loop() {
           right_turn(50);
       }else{
           inch();
+          // checking for end of maze
+          if((reading[4]<200 or reading[3]<200) and reading[0]<200){
+            move_forward(0, 0);
+            stopp = true;
+          }
           // checking for presence of junction(checking straight line)
-          if(reading[5]<200 or reading[4]<200 or reading[3]<200 or reading[2]<200){
+          else if(reading[5]<200 or reading[4]<200 or reading[3]<200 or reading[2]<200){
               // STORE TURN 'R'
               path[pointer] = 'R';
               pointer++;
@@ -160,8 +168,13 @@ void loop() {
    // left turn detected
    else if( (reading[4]<200 or reading[3]<200)and reading[7]<200){
         inch();
+        //checking for end of maze
+        if((reading[4]<200 or reading[3]<200) and reading[7]<200){
+            move_forward(0, 0);
+            stopp = true;
+        }
         // checking for presence of junction(checking straight line)
-        if(reading[5]<200 or reading[4]<200 or reading[3]<200 or reading[2]<200){
+        else if(reading[5]<200 or reading[4]<200 or reading[3]<200 or reading[2]<200){
           // STORE TURN 'S'
           path[pointer] = 'S';
           pointer++;
@@ -191,5 +204,17 @@ void loop() {
   else{
       move_forward(basespeeda, basespeedb); 
    }
-  
+}
+
+void final_run(){
+  //final run
+}
+/*======================================LOOP=============================================*/
+
+void loop() {
+  if(onoff == true){
+    final_run();
+  }else if(stopp == true){
+    dry_run();
+  }
 }
