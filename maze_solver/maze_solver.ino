@@ -25,6 +25,7 @@ int buttonstart = 11;
 
 char path[50];
 int pointer = 0;
+
 /*===========================================SETUP===============================================*/
 
 void setup() {
@@ -73,7 +74,7 @@ void calibration() {
   delay(3000);
 }
 
-/*===========================================MAIN LOOP===============================================*/
+/*===========================================MOVEMENT FUNCTIONS===============================================*/
 
 void move_forward(int posa, int posb) {
   digitalWrite(Af, HIGH);
@@ -132,6 +133,7 @@ void left_turn(uint8_t speed_ab){
 }
 
 /*======================================LOOP=============================================*/
+
 void loop() {
    uint16_t position = qtr.readLineWhite(reading);
 
