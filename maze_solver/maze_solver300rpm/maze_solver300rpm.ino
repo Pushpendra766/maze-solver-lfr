@@ -3,7 +3,7 @@ QTRSensors qtr;
 const uint8_t SensorCount = 8;
 uint16_t reading[SensorCount];
 
-boolean onoff = false;
+boolean onoff = HIGH;
 
 const uint8_t maxspeeda = 255;
 const uint8_t maxspeedb = 255;
@@ -12,6 +12,7 @@ const uint8_t basespeedb = 200;
 const uint8_t lowspeeda = 150;
 const uint8_t lowspeedb = 150;
 
+const int th = 500;
 
 const int Af = 8;
 const int Ab = 7;
@@ -23,11 +24,11 @@ const int PWM_B = 3;
 
 const int LED = 12;
 
-int buttonstart = 11;
+int buttonPin = 11;
 bool stopp = false;
-char path[50];
+String path;
 int pointer = 0;
-char final_path[50];
+char turn;
 /*===========================================SETUP===============================================*/
 
 void setup() {
@@ -42,17 +43,13 @@ void setup() {
   pinMode(Bb, OUTPUT);
   pinMode(PWM_B, OUTPUT);
 
+  pinMode(buttonPin, INPUT);
+  
   pinMode(LED, OUTPUT);
   delay(500);
   
   pinMode(LED_BUILTIN, OUTPUT);
-
-//  boolean Ok = false;
-//  while (Ok == false) { 
-//      calibration(); 
-//      Ok = true;
-//  }
-    calibration();
+  calibration();
 }
 
 void calibrate_move_forward(uint8_t speed_a, uint8_t speed_b){
@@ -138,7 +135,7 @@ void turn_left(uint8_t speed_ab){
 /*====================================CHECK FUNCTION=====================================*/
 bool check_end(){
   uint16_t position = qtr.readLineWhite(reading);
-  if((reading[4]<200 or reading[3]<200) and (reading[0]<200 or reading[7]<200)){
+  if((reading[4]<th or reading[3]<th) and (reading[0]<th or reading[7]<th)){
       move_forward(0, 0);
       stopp = true;
       return true;
@@ -147,35 +144,60 @@ bool check_end(){
 }
 bool check_straight(){
   uint16_t position = qtr.readLineWhite(reading);
-  if(reading[5]<200 or reading[4]<200 or reading[3]<200 or reading[2]<200){
+  if(reading[5]<th or reading[4]<th or reading[3]<th or reading[2]<th){
       return true;
   }
   return false;
 }
 /*=====================================REDUCE PATH FUNCTION==============================*/
 
-
+void reduce_path(){
+    for(int i=0;i<path.length();){
+        if(path[i] == 'B'){
+            if(path[i-1] == 'L' and path[i+1] == 'L'){
+                path[i-1] = 'S';
+            }else if(path[i-1] == 'R' and path[i+1] == 'R'){
+                path[i-1] = 'S';
+            }else if(path[i-1] == 'S' and path[i+1] == 'S'){
+                path[i-1] = 'B';
+            }else if(path[i-1] == 'L' and path[i+1] == 'R'){
+                path[i-1] = 'B';
+            }else if(path[i-1] == 'R' and path[i+1] == 'L'){
+                path[i-1] = 'B';
+            }else if(path[i-1] == 'L' and path[i+1] == 'S'){
+                path[i-1] = 'R';
+            }else if(path[i-1] == 'S' and path[i+1] == 'L'){
+                path[i-1] = 'R';
+            }else if(path[i-1] == 'R' and path[i+1] == 'S'){
+                path[i-1] = 'L';
+            }else if(path[i-1] == 'S' and path[i+1] == 'R'){
+                path[i-1] = 'L';
+            }
+            path.remove(i, 2);
+            i--;
+        }else{
+            i++;
+        }
+    }
+}
 /*======================================DRY RUN==========================================*/
 
 void dry_run(){
-  uint16_t position = qtr.readLineWhite(reading);
+   uint16_t position = qtr.readLineWhite(reading);
 
    // right turn detected
-   if( (reading[4]<200 or reading[3]<200)and reading[0]<200){
-      digitalWrite(12, HIGH);
+   if( (reading[4]<th or reading[3]<th)and reading[0]<th){
       move_forward(0, 0);
       delay(50);
       // checking for left 
-      if(reading[7]<200){
+      if(reading[7]<th){
           inch();
           delay(50);
           if(check_end()){
-              path[pointer] = 'X';
-              pointer++;
+              path += 'X';
               return;
           }else{
-              path[pointer] = 'R';
-              pointer++;
+              path += 'R';
               turn_right(200);
               delay(50);
           }
@@ -186,12 +208,10 @@ void dry_run(){
         delay(50);
         if(check_straight()){
             if(check_end()){
-              path[pointer] = 'X';
-              pointer++;
+              path += 'X';
               return;
             }else{
-                path[pointer] = 'R';
-                pointer++;
+                path += 'R';
                 turn_right(200);
                 delay(50);
             }
@@ -201,10 +221,9 @@ void dry_run(){
         }
       }
       move_forward(100, 100);
-      digitalWrite(12, LOW);
    }
    // left turn detected
-   else if( (reading[4]<200 or reading[3]<200)and reading[7]<200){
+   else if( (reading[4]<th or reading[3]<th)and reading[7]<th){
         move_forward(0, 0);
         delay(50);
         inch();
@@ -212,12 +231,10 @@ void dry_run(){
         //checking for straight
         if(check_straight()){
             if(check_end()){
-                path[pointer] = 'X';
-                pointer++;
+                path += 'X';
                 return;
             } else{
-                path[pointer] = 'S';
-                pointer++;
+                path += 'S';
                 move_forward(100, 100);
                 delay(50);
             }
@@ -225,43 +242,22 @@ void dry_run(){
             turn_left(200);
             delay(50);
             move_forward(100, 100);
-        }
-        
+        }      
     }
-//   if((reading[4]<200 or reading[3]<200)and reading[0]<200){
-//      move_forward(0, 0);
-//      delay(50);
-//      inch();
-//      delay(50);
-//      turn_rightx(200);
-//      delay(50);
-//      move_forward(100, 100);
-//   }
-//   else if((reading[4]<200 or reading[3]<200)and reading[7]<200){
-//      move_forward(0, 0);
-//      delay(50);
-//      inch();
-//      delay(50);
-//      turn_left(200);
-//      delay(50);
-//      move_forward(100, 100);
-//   }
    //code for keeping bot on track
-   else if(reading[7]<200){
-      move_forward(basespeeda, lowspeedb);
-   }else if(reading[1]<200){
+   else if(reading[7]<th){
+      move_forward(basespeeda, 60);
+   }else if(reading[1]<th){
       move_forward(80, basespeedb);
-   }else if(reading[6]<200){
+   }else if(reading[6]<th){
       move_forward(basespeeda, 80);
-   }else if(reading[0]<200){
-    move_forward(lowspeeda, basespeedb);
+   }else if(reading[0]<th){
+    move_forward(60, basespeedb);
   }
   // black surface/ dead end
   else if(reading[0]>500 and reading[1]>500 and reading[2]>500 and reading[3]>500 and reading[4]>500 and reading[5]>500 and reading[6]>500 and reading[7]>500){
       // STORE TURN 'B'
-//      path[pointer] = 'B';
-//      pointer++;
-//      u_turn(50);
+      path += 'B';
       move_forward(0, 0);
       delay(50);
       u_turn(200);
@@ -274,14 +270,102 @@ void dry_run(){
    }
 }
 
+/*===================FINAL RUN FUNCTIONS==================================*/
+
+void take_turn(char turn){
+  if(turn == 'R'){
+    turn_right(200);
+  }else if(turn == 'L'){
+    turn_left(200);
+  }else if(turn == 'S'){
+    move_forward(basespeeda, basespeedb);
+  }
+  pointer++;
+  delay(50);
+}
+
+void done(){
+  digitalWrite(12, HIGH);
+  delay(60000);
+}
+
+/*=================================FINAL RUN==================================*/
+
 void final_run(){
   //final run
+  uint16_t position = qtr.readLineWhite(reading);
+  turn = path[pointer];
+  
+   if( (reading[4]<th or reading[3]<th) and reading[0]<th and reading[7]<th){
+      move_forward(0, 0);
+      delay(50);
+      inch();
+      delay(50);
+      if(check_end()){
+        done();
+      }else{
+        take_turn(turn);
+      }
+      
+   }
+   // right turn detected
+   else if((reading[4]<th or reading[3]<th) and reading[0]<th){
+      move_forward(0, 0);
+      delay(50);
+      inch();
+      delay(50);
+      
+      if(check_straight()){
+        if(check_end()){
+          done();
+        }else{
+          take_turn(turn);
+        }
+      }else{
+        turn_right(200);
+      }
+   }
+   // left turn detected
+   else if( (reading[4]<th or reading[3]<th)and reading[7]<th){
+        move_forward(0, 0);
+        delay(50);
+        inch();
+        delay(50);
+        if(check_straight()){
+          if(check_end()){
+            done();
+          }else{
+            take_turn(turn);
+          }
+        }else{
+          turn_left(200);
+        }    
+    }
+   //code for keeping bot on track
+   else if(reading[7]<th){
+      move_forward(basespeeda, lowspeedb);
+   }else if(reading[1]<th){
+      move_forward(80, basespeedb);
+   }else if(reading[6]<th){
+      move_forward(basespeeda, 80);
+   }else if(reading[0]<th ){
+    move_forward(lowspeeda, basespeedb);
+  }
+  // when bot is on track without turns
+  else{
+      move_forward(basespeeda, basespeedb); 
+   }
 }
+
 /*======================================LOOP=============================================*/
 
 void loop() {
-  if(onoff == true){
-    final_run();
+  onoff = digitalRead(buttonPin);
+  if(onoff == LOW){
+    reduce_path();
+    while(true){
+      final_run();
+    }
   }else if(stopp == false){
     dry_run();
   }
