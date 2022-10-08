@@ -210,6 +210,9 @@ void dry_run(){
           delay(50);
           if(check_end()){
               path += 'X';
+              digitalWrite(12, HIGH);
+              delay(3000);
+              digitalWrite(12, LOW);
               return;
           }else{
               path += 'R';
@@ -225,6 +228,9 @@ void dry_run(){
         if(check_straight()){
             if(check_end()){
               path += 'X';
+              digitalWrite(12, HIGH);
+              delay(3000);
+              digitalWrite(12, LOW);
               return;
             }else{
                 path += 'R';
@@ -250,6 +256,9 @@ void dry_run(){
         if(check_straight()){
             if(check_end()){
                 path += 'X';
+                digitalWrite(12, HIGH);
+                delay(3000);
+                digitalWrite(12, LOW);
                 return;
             } else{
                 path += 'S';
