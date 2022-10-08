@@ -132,6 +132,21 @@ void turn_left(uint8_t speed_ab){
   analogWrite(PWM_B, 0);
 }
 
+void slight_turn(){
+  uint16_t position = qtr.readLineWhite(reading);
+  if(reading[3]<th or reading[4]<th){
+    return;
+  }else{
+    turn_right(100);
+    position = qtr.readLineWhite(reading);
+    if(reading[3]<th or reading[4]<th){
+      return;
+    }else{
+      turn_left(200);
+    }
+  }
+}
+
 /*====================================CHECK FUNCTION=====================================*/
 bool check_end(){
   uint16_t position = qtr.readLineWhite(reading);
@@ -200,6 +215,7 @@ void dry_run(){
               path += 'R';
               turn_right(200);
               delay(50);
+              slight_turn();
           }
       }
       //checking for straight
@@ -214,10 +230,12 @@ void dry_run(){
                 path += 'R';
                 turn_right(200);
                 delay(50);
+                slight_turn();
             }
         }else{
             turn_right(200);
             delay(50);
+            slight_turn();
         }
       }
       move_forward(100, 100);
@@ -241,6 +259,7 @@ void dry_run(){
         }else{
             turn_left(200);
             delay(50);
+            slight_turn();
             move_forward(100, 100);
         }      
     }
@@ -305,8 +324,8 @@ void final_run(){
         done();
       }else{
         take_turn(turn);
+        slight_turn();
       }
-      
    }
    // right turn detected
    else if((reading[4]<th or reading[3]<th) and reading[0]<th){
@@ -320,9 +339,11 @@ void final_run(){
           done();
         }else{
           take_turn(turn);
+          slight_turn();
         }
       }else{
         turn_right(200);
+        slight_turn();
       }
    }
    // left turn detected
@@ -336,9 +357,11 @@ void final_run(){
             done();
           }else{
             take_turn(turn);
+            slight_turn();
           }
         }else{
           turn_left(200);
+          slight_turn();
         }    
     }
    //code for keeping bot on track
